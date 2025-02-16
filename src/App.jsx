@@ -18,7 +18,7 @@ import "./style.css";
 const socket = io("https://securegroupchat-backend.onrender.com");
 
 // Allowed users and preset passkey for demo purposes
-const ALLOWED_USERS = ["Jack", "Ore", "Caius", "Jonah", "Alice"];
+const ALLOWED_USERS = ["Jack", "Ore", "Caius", "Jonah", "Giosue", "VON","Patrick"];
 const PRESET_PASSKEY = "secure123";
 
 // Helper function to format timestamps using built-in methods
@@ -110,6 +110,20 @@ function App() {
     document.documentElement.setAttribute("data-theme", theme);
   }, [theme]);
 
+  useEffect(() => {
+    const storedUsername = localStorage.getItem("username");
+    const storedAvatar = localStorage.getItem("avatarUrl");
+    const storedPasskey = localStorage.getItem("passkey");
+    if (storedUsername && storedPasskey) {
+      setUsername(storedUsername);
+      setAvatarUrl(storedAvatar || "");
+      setPasskey(storedPasskey);
+      setIsAuthenticated(true);
+      socket.emit("authenticate", { passkey: storedPasskey, username: storedUsername, avatarUrl: storedAvatar, room });
+    }
+  }, []);
+  
+
   // --- Login Handler (with demo 2FA OTP) ---
   const handleLogin = (e) => {
     e.preventDefault();
@@ -121,17 +135,17 @@ function App() {
       alert("Invalid username!");
       return;
     }
-    // For demo, require OTP to be "123456"
     if (otp !== "123456") {
       alert("Invalid OTP!");
       return;
     }
-    // Save profile info locally if needed
     localStorage.setItem("username", username);
     localStorage.setItem("avatarUrl", avatarUrl);
+    localStorage.setItem("passkey", passkey);
     socket.emit("authenticate", { passkey, username, avatarUrl, room });
     setIsAuthenticated(true);
   };
+  
 
   // --- Sending a Message ---
   const sendMessage = () => {
@@ -153,24 +167,29 @@ function App() {
     if (!file) return;
     const formData = new FormData();
     formData.append("file", file);
-    const response = await fetch(
-      "https://securegroupchat-backend.onrender.com/upload",
-      {
+    try {
+      const response = await fetch("https://securegroupchat-backend.onrender.com/upload", {
         method: "POST",
         body: formData,
-      }
-    );
-    const data = await response.json();
-    socket.emit("send_message", {
-      user: username,
-      avatarUrl,
-      fileUrl: data.fileUrl,
-      fileType: data.fileType,
-      recipient,
-      room,
-      timestamp: new Date(),
-    });
+      });
+      const data = await response.json();
+      const fileUrl = data.fileUrl.startsWith("/")
+        ? "https://securegroupchat-backend.onrender.com" + data.fileUrl
+        : data.fileUrl;
+      socket.emit("send_message", {
+        user: username,
+        avatarUrl,
+        fileUrl,
+        fileType: data.fileType,
+        recipient,
+        room,
+        timestamp: new Date(),
+      });
+    } catch (error) {
+      console.error("File upload error:", error);
+    }
   };
+  
 
   // --- Typing Handler ---
   const handleTyping = (e) => {
@@ -539,14 +558,19 @@ function App() {
                 <input type="file" onChange={handleFileUpload} />
               </label>
               <input
-                type="text"
-                placeholder="Type your message..."
-                value={newMessage}
-                onChange={handleTyping}
+                  type="text"
+                  placeholder="Type your message..."
+                  value={newMessage}
+                  onChange={handleTyping}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      sendMessage();
+                    }
+                  }}
               />
               <button onClick={sendMessage}>
                 <FaRegThumbsUp />
-              </button>
+              </button> 
               <button onClick={recording ? stopRecording : startRecording}>
                 <FaMicrophone />
               </button>
