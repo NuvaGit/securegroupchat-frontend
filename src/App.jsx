@@ -19,7 +19,7 @@ const socket = io("https://securegroupchat-backend.onrender.com");
 
 // Allowed users and preset passkey for demo purposes
 const ALLOWED_USERS = ["Jack", "Ore", "Caius", "Jonah", "Giosue", "VON","Patrick"];
-const PRESET_PASSKEY = "secure123";
+const PRESET_PASSKEY = "secure123"; 
 
 // Helper function to format timestamps using built-in methods
 const formatTimestamp = (timestamp) => {
